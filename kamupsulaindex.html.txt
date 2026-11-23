@@ -1,0 +1,2073 @@
+<!DOCTYPE html>
+<html lang="tr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KamuPusula v2 | Türkiye Kamu Personeli Alım ve Kariyer Portalı</title>
+    
+    <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        navy: {
+                            800: '#1E293B',
+                            900: '#0F172A',
+                            950: '#080D1A',
+                        },
+                        gov: {
+                            50: '#EFF6FF',
+                            100: '#DBEAFE',
+                            600: '#2563EB',
+                            700: '#1D4ED8',
+                            800: '#1E3A8A',
+                            900: '#172554',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Firebase JS SDK v10 Compat (Dinamik Bulut Bağlantısı İçin) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+    <style>
+        /* Özel Kaydırma Çubukları */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #F1F5F9; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+        /* Yatay kategori barı gizli scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Geçiş animasyonları */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.25s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased selection:bg-gov-800 selection:text-white min-h-screen flex flex-col">
+
+    <!-- 1. Üst Kurumsal Bilgi & Veritabanı Durum Şeridi -->
+    <div class="bg-navy-950 text-slate-300 text-xs py-2 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap justify-between items-center gap-2">
+            <div class="flex items-center gap-2.5">
+                <span id="dbStatusDot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span id="dbStatusText" class="font-medium text-slate-300">Yerel Mod (Cihaz İçi Depolama)</span>
+                <span class="hidden sm:inline text-slate-600">•</span>
+                <span class="hidden sm:inline text-slate-400">Resmi Gazete, ÖSYM, Kariyer Kapısı & İŞKUR</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="openKpssModal()" class="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1.5 transition">
+                    <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+                    <span>KPSS Puan Robotu</span>
+                </button>
+                <span class="text-slate-700">|</span>
+                <button onclick="openAdminTrigger()" class="text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1 transition">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+                    <span>Yönetim Girişi</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Ana Gezinme Çubuğu (Sticky Navbar) -->
+    <header class="bg-white/95 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16 sm:h-20 gap-2">
+                
+                <!-- Marka Logosu -->
+                <a href="#" onclick="resetAllFilters(); return false;" class="flex items-center gap-2.5 sm:gap-3 group flex-shrink-0">
+                    <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-navy-900 via-gov-800 to-gov-600 flex items-center justify-center text-white shadow-md relative">
+                        <i data-lucide="compass" class="w-6 h-6 text-emerald-300"></i>
+                        <span class="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full border-2 border-white"></span>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-display text-lg sm:text-xl font-extrabold tracking-tight text-navy-900">Kamu<span class="text-gov-700">Pusula</span></span>
+                            <span class="text-[10px] font-extrabold uppercase tracking-wider bg-gov-800 text-white px-1.5 py-0.5 rounded-md">v2</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 font-medium hidden sm:block">Türkiye Kamu Personeli Alım Portalı</p>
+                    </div>
+                </a>
+
+                <!-- Sağ Hızlı Aksiyon Butonları (Mobil & Masaüstü Touch-Friendly) -->
+                <div class="flex items-center gap-2 sm:gap-2.5">
+                    <!-- KPSS Puan Hesapla -->
+                    <button onclick="openKpssModal()" class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-gov-800 bg-gov-50 hover:bg-gov-100 border border-gov-200 transition">
+                        <i data-lucide="calculator" class="w-4 h-4 text-gov-700"></i>
+                        <span class="hidden md:inline">KPSS Puan Hesapla</span>
+                        <span class="md:hidden">KPSS</span>
+                    </button>
+
+                    <!-- Favorilerim -->
+                    <button onclick="toggleFavoritesFilter()" id="favNavBtn" class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-700 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 border border-slate-200 transition">
+                        <i data-lucide="heart" class="w-4 h-4 text-red-600"></i>
+                        <span class="hidden sm:inline">Favorilerim</span>
+                        <span id="favCountBadge" class="px-1.5 py-0.5 text-[11px] font-extrabold rounded-full bg-red-600 text-white leading-none">0</span>
+                    </button>
+
+                    <!-- Yönetim (Admin) Butonu -->
+                    <button onclick="openAdminTrigger()" class="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-navy-900 hover:bg-gov-800 shadow-sm transition">
+                        <i data-lucide="lock" class="w-4 h-4 text-amber-400"></i>
+                        <span>Yönetim</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Hızlı Kategori Sekmeleri (Mobil Yatay Kaydırmalı) -->
+            <nav class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-3 pt-1 border-t border-slate-100">
+                <button onclick="setCategoryFilter('ALL')" data-cat="ALL" class="cat-tab flex-shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-gov-800 text-white transition">
+                    Tüm İlanlar
+                </button>
+                <button onclick="setCategoryFilter('Merkezi Atama (KPSS)')" data-cat="Merkezi Atama (KPSS)" class="cat-tab flex-shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">
+                    Merkezi Atama (KPSS)
+                </button>
+                <button onclick="setCategoryFilter('Sözleşmeli (4/B)')" data-cat="Sözleşmeli (4/B)" class="cat-tab flex-shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">
+                    Sözleşmeli (4/B)
+                </button>
+                <button onclick="setCategoryFilter('Kamu İşçisi (İŞKUR)')" data-cat="Kamu İşçisi (İŞKUR)" class="cat-tab flex-shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">
+                    Kamu İşçisi (İŞKUR)
+                </button>
+                <button onclick="setCategoryFilter('Akademik & Askeri')" data-cat="Akademik & Askeri" class="cat-tab flex-shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">
+                    Akademik & Askeri
+                </button>
+                <button onclick="setCategoryFilter('Belediye & Kurumlar')" data-cat="Belediye & Kurumlar" class="cat-tab flex-shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 transition">
+                    Belediye & Kurumlar
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 3. Hero Banner & Canlı Tıklanabilir İstatistik Kartları -->
+    <section class="bg-gradient-to-br from-navy-950 via-navy-900 to-gov-900 text-white pt-8 pb-20 relative overflow-hidden">
+        <!-- Kurumsal Arka Plan Deseni -->
+        <div class="absolute inset-0 opacity-10 pointer-events-none">
+            <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <pattern id="govPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="1"/>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#govPattern)"/>
+            </svg>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="max-w-3xl mx-auto text-center mb-8">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 mb-3">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Tüm Kamu Kurumları Tek Platformda
+                </span>
+                <h1 class="font-display text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight mb-3">
+                    Güncel Memur, Sözleşmeli ve Kamu İşçi Alımlarını Anında Takip Edin
+                </h1>
+                <p class="text-slate-300 text-xs sm:text-base">
+                    Kurum adı, kadro unvanı, şehir, eğitim düzeyi veya nitelik kodlarına (4001, 3001, 2001) göre tüm resmi ilanları saniyeler içinde filtreleyin.
+                </p>
+            </div>
+
+            <!-- 4'lü Tıklanabilir İstatistik Kartları -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-6xl mx-auto">
+                <!-- Kart 1: Toplam Aktif İlan -->
+                <button onclick="applyStatQuickFilter('ALL')" class="text-left bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/15 rounded-2xl p-4 sm:p-5 transition group">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">Aktif İlan</span>
+                        <div class="w-8 h-8 rounded-xl bg-gov-600/30 text-sky-300 flex items-center justify-center">
+                            <i data-lucide="briefcase" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="font-display text-2xl sm:text-3xl font-extrabold text-white" id="statActiveCount">0</div>
+                    <span class="text-[11px] text-sky-300 font-semibold mt-1 inline-flex items-center gap-1">
+                        Tümünü listele <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                    </span>
+                </button>
+
+                <!-- Kart 2: Toplam Kontenjan -->
+                <button onclick="applyStatQuickFilter('QUOTA')" class="text-left bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/15 rounded-2xl p-4 sm:p-5 transition group">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">Toplam Kontenjan</span>
+                        <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
+                            <i data-lucide="users" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="font-display text-2xl sm:text-3xl font-extrabold text-emerald-300" id="statTotalQuota">0</div>
+                    <span class="text-[11px] text-slate-300 font-semibold mt-1 inline-flex items-center gap-1">
+                        En yüksek alıma göre sırala
+                    </span>
+                </button>
+
+                <!-- Kart 3: KPSS Şartsız İlanlar -->
+                <button onclick="applyStatQuickFilter('NO_KPSS')" class="text-left bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/15 rounded-2xl p-4 sm:p-5 transition group">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">KPSS Şartsız</span>
+                        <div class="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center">
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="font-display text-2xl sm:text-3xl font-extrabold text-teal-300" id="statNoKpssCount">0</div>
+                    <span class="text-[11px] text-teal-200 font-semibold mt-1 inline-flex items-center gap-1">
+                        Kura & şartsız alımları gör
+                    </span>
+                </button>
+
+                <!-- Kart 4: Son 3 Gün (Acil) -->
+                <button onclick="applyStatQuickFilter('CLOSING_SOON')" class="text-left bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/15 rounded-2xl p-4 sm:p-5 transition group">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-300">Son 3 Gün</span>
+                        <div class="w-8 h-8 rounded-xl bg-red-500/25 text-red-300 flex items-center justify-center">
+                            <i data-lucide="clock" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <div class="font-display text-2xl sm:text-3xl font-extrabold text-amber-300" id="statClosingCount">0</div>
+                    <span class="text-[11px] text-amber-200 font-semibold mt-1 inline-flex items-center gap-1">
+                        Başvurusu bitmek üzere
+                    </span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. Çok Kriterli Arama ve Filtreleme Konsolu -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-20 mb-8">
+        <div class="bg-white rounded-3xl shadow-xl border border-slate-200/90 p-4 sm:p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3.5">
+                
+                <!-- Anahtar Kelime / Kurum / Nitelik Kodu -->
+                <div class="lg:col-span-4">
+                    <label for="searchInput" class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Kurum, Kadro veya Nitelik Kodu
+                    </label>
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="searchInput" placeholder="Örn: Sağlık, 4001, Zabıt Katibi, TCDD..."
+                            class="w-full pl-10 pr-9 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-gov-700 focus:bg-white transition">
+                        <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            <i data-lucide="x-circle" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Şehir Seçimi (81 İl + Türkiye Geneli) -->
+                <div class="lg:col-span-3">
+                    <label for="cityFilter" class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Şehir / Görev Yeri
+                    </label>
+                    <select id="cityFilter" class="w-full px-3.5 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-gov-700 transition">
+                        <option value="ALL">Tüm Şehirler (Türkiye Geneli)</option>
+                    </select>
+                </div>
+
+                <!-- Eğitim Düzeyi -->
+                <div class="lg:col-span-2">
+                    <label for="eduFilter" class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Eğitim Düzeyi
+                    </label>
+                    <select id="eduFilter" class="w-full px-3.5 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-gov-700 transition">
+                        <option value="ALL">Tümü</option>
+                        <option value="İlköğretim">İlköğretim</option>
+                        <option value="Ortaöğretim">Ortaöğretim (Lise)</option>
+                        <option value="Önlisans">Önlisans (2 Yıllık)</option>
+                        <option value="Lisans">Lisans (4 Yıllık)</option>
+                    </select>
+                </div>
+
+                <!-- Alım Türü -->
+                <div class="lg:col-span-3">
+                    <label for="typeFilter" class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Kadro / Alım Türü
+                    </label>
+                    <select id="typeFilter" class="w-full px-3.5 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-gov-700 transition">
+                        <option value="ALL">Tüm Alım Türleri</option>
+                        <option value="Memur">Kadrolu Memur (657 4/A)</option>
+                        <option value="Sözleşmeli Personel">Sözleşmeli Personel (4/B)</option>
+                        <option value="Sürekli İşçi">Sürekli İşçi (İŞKUR)</option>
+                        <option value="Akademik">Akademik / Araştırmacı</option>
+                        <option value="Askeri/Polis">Askeri / Polis / Güvenlik</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Alt Satır: KPSS Şartsız Toggle, Hızlı Kodlar & Sıfırla -->
+            <div class="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                
+                <!-- KPSS Şartsız Toggle Switch -->
+                <label class="inline-flex items-center gap-3 cursor-pointer select-none bg-emerald-50/90 border border-emerald-200 px-3.5 py-2 rounded-xl w-fit">
+                    <input type="checkbox" id="noKpssToggle" class="sr-only peer">
+                    <div class="relative w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                    <span class="text-xs sm:text-sm font-bold text-emerald-950">Sadece KPSS Şartsız İlanlar</span>
+                </label>
+
+                <!-- Hızlı Nitelik Kodu Etiketleri & Sıfırlama -->
+                <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                    <span class="text-slate-400 font-semibold mr-1">Hızlı Kod:</span>
+                    <button onclick="quickSearch('4001')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-gov-100 text-slate-700 hover:text-gov-800 font-bold transition">4001</button>
+                    <button onclick="quickSearch('3001')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-gov-100 text-slate-700 hover:text-gov-800 font-bold transition">3001</button>
+                    <button onclick="quickSearch('2001')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-gov-100 text-slate-700 hover:text-gov-800 font-bold transition">2001</button>
+                    <button onclick="resetAllFilters()" class="ml-1 px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-red-700 font-bold inline-flex items-center gap-1 transition">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                        <span>Filtreleri Sıfırla</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. Ana İlan Listesi Alanı -->
+    <main id="listingsSection" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 flex-grow w-full">
+        
+        <!-- Liste Başlığı & Sıralama -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+            <div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <h2 id="listHeading" class="font-display text-lg sm:text-xl font-extrabold text-navy-900">
+                        Güncel Kamu Personeli Alım İlanları
+                    </h2>
+                    <span id="activeFilterBadge" class="hidden px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+                        Özel Filtre Aktif
+                    </span>
+                </div>
+                <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                    Arama kriterlerinize uygun <strong id="visibleCount" class="text-gov-800 font-extrabold">0</strong> ilan listeleniyor.
+                </p>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <label for="sortSelect" class="text-xs font-bold text-slate-500 whitespace-nowrap">Sıralama:</label>
+                <select id="sortSelect" class="px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-gov-700 shadow-2xs">
+                    <option value="newest">En Yeni İlanlar</option>
+                    <option value="deadline">Son Başvuru Yaklaşan</option>
+                    <option value="quota">En Yüksek Kontenjan</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- İlan Kartları Izgarası -->
+        <div id="jobsContainer" class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+            <!-- Dinamik İlan Kartları -->
+        </div>
+
+        <!-- Sonuç Bulunamadı Kutusu -->
+        <div id="emptyState" class="hidden bg-white rounded-3xl border border-slate-200 p-10 sm:p-14 text-center shadow-xs">
+            <div class="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="folder-search" class="w-8 h-8"></i>
+            </div>
+            <h3 class="font-display text-lg font-extrabold text-navy-900 mb-1">Aradığınız Kriterde İlan Bulunamadı</h3>
+            <p class="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mb-6">
+                Seçtiğiniz şehir, eğitim düzeyi veya anahtar kelimeyle eşleşen aktif ilan yok. Tüm ilanları görmek için filtreleri sıfırlayabilirsiniz.
+            </p>
+            <button onclick="resetAllFilters()" class="px-5 py-3 rounded-xl bg-gov-800 hover:bg-navy-900 text-white text-sm font-bold transition shadow-sm">
+                Tüm İlanları Göster
+            </button>
+        </div>
+    </main>
+
+    <!-- 6. Kurumsal Alt Bilgi (Footer) -->
+    <footer class="bg-navy-950 text-slate-400 border-t border-slate-800 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-8 border-b border-slate-800/80">
+                <div>
+                    <div class="flex items-center gap-2.5 text-white mb-2">
+                        <div class="w-9 h-9 rounded-xl bg-gov-800 flex items-center justify-center">
+                            <i data-lucide="compass" class="w-5 h-5 text-emerald-400"></i>
+                        </div>
+                        <span class="font-display text-lg font-extrabold">Kamu<span class="text-sky-400">Pusula</span> v2</span>
+                    </div>
+                    <p class="text-xs text-slate-400 max-w-md leading-relaxed">
+                        Türkiye genelindeki tüm kamu kurum ve kuruluşlarının memur, 4/B sözleşmeli personel, akademik ve İŞKUR sürekli işçi alımlarını tek merkezde sunan dijital kariyer portalı.
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap gap-3">
+                    <a href="https://isealimkariyerkapisi.cbiko.gov.tr" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-slate-200 border border-white/10 transition">
+                        Kariyer Kapısı ↗
+                    </a>
+                    <a href="https://ais.osym.gov.tr" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-slate-200 border border-white/10 transition">
+                        ÖSYM AİS ↗
+                    </a>
+                    <a href="https://esube.iskur.gov.tr" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-slate-200 border border-white/10 transition">
+                        İŞKUR e-Şube ↗
+                    </a>
+                    <a href="https://www.resmigazete.gov.tr" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-slate-200 border border-white/10 transition">
+                        Resmi Gazete ↗
+                    </a>
+                </div>
+            </div>
+
+            <div class="pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
+                <p>&copy; 2026 KamuPusula v2 — Tüm Hakları Saklıdır.</p>
+                <button onclick="openAdminTrigger()" class="text-slate-400 hover:text-amber-400 font-semibold transition">
+                    Site Yöneticisi Girişi
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 1: İLAN DETAYI & BAŞVURU KILAVUZU                               -->
+    <!-- ===================================================================== -->
+    <div id="detailModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-navy-950/80 backdrop-blur-sm" onclick="closeDetailModal()"></div>
+        <div class="flex min-h-full items-center justify-center p-3 sm:p-6">
+            <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 animate-fade-in">
+                
+                <!-- Modal Üst Başlık -->
+                <div class="bg-gradient-to-r from-navy-950 via-navy-900 to-gov-800 px-5 sm:px-6 py-5 text-white flex items-start justify-between gap-3">
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                            <span id="dCatBadge" class="px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-white/15 text-sky-200">Kategori</span>
+                            <span id="dUrgencyBadge" class="px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold bg-emerald-600 text-white">Aktif İlan</span>
+                        </div>
+                        <h3 id="dInstitution" class="font-display text-lg sm:text-xl font-extrabold leading-snug">Kurum Adı</h3>
+                        <p id="dTitle" class="text-slate-300 text-xs sm:text-sm mt-0.5">Kadro / İlan Başlığı</p>
+                    </div>
+                    <button onclick="closeDetailModal()" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition flex-shrink-0">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <!-- Modal İçerik -->
+                <div class="p-5 sm:p-6 max-h-[78vh] overflow-y-auto space-y-5">
+                    
+                    <!-- 4'lü Bilgi Özeti -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                            <span class="block text-[10px] font-extrabold uppercase text-slate-400">Kontenjan</span>
+                            <span id="dQuota" class="text-sm sm:text-base font-extrabold text-navy-900 mt-0.5 block">0 Kişi</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                            <span class="block text-[10px] font-extrabold uppercase text-slate-400">Eğitim Düzeyi</span>
+                            <span id="dEducation" class="text-sm sm:text-base font-extrabold text-gov-800 mt-0.5 block">Lisans</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                            <span class="block text-[10px] font-extrabold uppercase text-slate-400">KPSS Şartı</span>
+                            <span id="dKpss" class="text-sm sm:text-base font-extrabold text-emerald-700 mt-0.5 block">KPSS P3</span>
+                        </div>
+                        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                            <span class="block text-[10px] font-extrabold uppercase text-slate-400">Son Başvuru</span>
+                            <span id="dDeadline" class="text-sm sm:text-base font-extrabold text-red-600 mt-0.5 block">Tarih</span>
+                        </div>
+                    </div>
+
+                    <!-- Şehir & Nitelik Kodları -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 text-xs font-bold inline-flex items-center gap-1.5">
+                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-red-600"></i>
+                            <span id="dCity">Şehir</span>
+                        </span>
+                        <span class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 text-xs font-bold inline-flex items-center gap-1.5">
+                            <i data-lucide="tag" class="w-3.5 h-3.5 text-gov-700"></i>
+                            <span id="dRecruitType">Alım Türü</span>
+                        </span>
+                        <div id="dCodesWrap" class="flex flex-wrap gap-1.5"></div>
+                    </div>
+
+                    <!-- Başvuru Şartları & Kılavuz Detayları -->
+                    <div class="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-200/90">
+                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-navy-900 mb-2 flex items-center gap-1.5">
+                            <i data-lucide="file-text" class="w-4 h-4 text-gov-700"></i>
+                            Başvuru Şartları ve Kılavuz Özeti
+                        </h4>
+                        <div id="dDetails" class="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line"></div>
+                    </div>
+
+                    <!-- Özlük Hakları & Başvuru Adımları Bilgilendirmesi -->
+                    <div class="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4">
+                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-emerald-900 mb-1.5 flex items-center gap-1.5">
+                            <i data-lucide="info" class="w-4 h-4 text-emerald-600"></i>
+                            Başvuru Adımları ve Özlük Notu
+                        </h4>
+                        <p class="text-xs text-emerald-950 leading-relaxed">
+                            Başvurular yalnızca aşağıda belirtilen resmi kamu başvuru adresi üzerinden e-Devlet şifresi ile elektronik ortamda alınmaktadır. Adayların mezuniyet bilgilerinin YÖK/MEB sisteminde güncel olması gerekmektedir.
+                        </p>
+                    </div>
+
+                    <!-- Resmi Başvuru Linki Aksiyonu -->
+                    <div class="bg-gov-50 border border-gov-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="overflow-hidden">
+                            <span class="text-[11px] font-extrabold uppercase text-gov-800 block">Resmi Başvuru Kanalı</span>
+                            <p id="dApplyUrlText" class="text-xs font-mono text-slate-600 truncate mt-0.5">https://isealimkariyerkapisi.cbiko.gov.tr</p>
+                        </div>
+                        <a id="dApplyLinkBtn" href="https://isealimkariyerkapisi.cbiko.gov.tr" target="_blank" rel="noopener noreferrer"
+                            class="w-full sm:w-auto px-5 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm shadow-sm transition inline-flex items-center justify-center gap-2 flex-shrink-0">
+                            <span>Resmi Başvuru Ekranına Git</span>
+                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 2: KPSS PUAN HESAPLAMA & TERCİH ROBOTU                          -->
+    <!-- ===================================================================== -->
+    <div id="kpssModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-navy-950/80 backdrop-blur-sm" onclick="closeKpssModal()"></div>
+        <div class="flex min-h-full items-center justify-center p-3 sm:p-6">
+            <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200 animate-fade-in">
+                
+                <div class="bg-gradient-to-r from-navy-950 to-gov-800 px-5 sm:px-6 py-4 text-white flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
+                            <i data-lucide="calculator" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-display text-base sm:text-lg font-extrabold">KPSS Puan Hesaplama Robotu</h3>
+                            <p class="text-[11px] sm:text-xs text-slate-300">Netlerinizi girin, puanınıza uygun ilanları tek tıkla görün.</p>
+                        </div>
+                    </div>
+                    <button onclick="closeKpssModal()" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <div class="p-5 sm:p-6 space-y-4">
+                    <!-- Öğrenim Düzeyi Seçimi -->
+                    <div>
+                        <label class="block text-xs font-extrabold uppercase text-slate-500 mb-2">Öğrenim Düzeyi & Puan Türü</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="kpssEdu" value="Lisans" checked onchange="calculateKpss()" class="peer sr-only">
+                                <div class="p-2.5 rounded-xl border-2 border-slate-200 peer-checked:border-gov-700 peer-checked:bg-gov-50 text-center transition">
+                                    <span class="block text-xs font-extrabold text-navy-900">Lisans</span>
+                                    <span class="text-[11px] font-bold text-gov-700">KPSS P3</span>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="kpssEdu" value="Önlisans" onchange="calculateKpss()" class="peer sr-only">
+                                <div class="p-2.5 rounded-xl border-2 border-slate-200 peer-checked:border-gov-700 peer-checked:bg-gov-50 text-center transition">
+                                    <span class="block text-xs font-extrabold text-navy-900">Önlisans</span>
+                                    <span class="text-[11px] font-bold text-gov-700">KPSS P93</span>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="kpssEdu" value="Ortaöğretim" onchange="calculateKpss()" class="peer sr-only">
+                                <div class="p-2.5 rounded-xl border-2 border-slate-200 peer-checked:border-gov-700 peer-checked:bg-gov-50 text-center transition">
+                                    <span class="block text-xs font-extrabold text-navy-900">Ortaöğretim</span>
+                                    <span class="text-[11px] font-bold text-gov-700">KPSS P94</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- GY & GK Net Girişi -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-extrabold text-navy-900">Genel Yetenek (60)</span>
+                                <span id="gyNetText" class="text-xs font-extrabold text-gov-700 bg-gov-100 px-2 py-0.5 rounded">40.00 Net</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[11px] font-semibold text-slate-500 block mb-1">Doğru</label>
+                                    <input type="number" id="gyDogru" min="0" max="60" value="42" oninput="calculateKpss()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold text-center">
+                                </div>
+                                <div>
+                                    <label class="text-[11px] font-semibold text-slate-500 block mb-1">Yanlış</label>
+                                    <input type="number" id="gyYanlis" min="0" max="60" value="8" oninput="calculateKpss()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold text-center">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-extrabold text-navy-900">Genel Kültür (60)</span>
+                                <span id="gkNetText" class="text-xs font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">35.00 Net</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[11px] font-semibold text-slate-500 block mb-1">Doğru</label>
+                                    <input type="number" id="gkDogru" min="0" max="60" value="38" oninput="calculateKpss()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold text-center">
+                                </div>
+                                <div>
+                                    <label class="text-[11px] font-semibold text-slate-500 block mb-1">Yanlış</label>
+                                    <input type="number" id="gkYanlis" min="0" max="60" value="12" oninput="calculateKpss()" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold text-center">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hesaplanan Puan Sonucu -->
+                    <div class="bg-navy-900 text-white rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div class="text-center sm:text-left">
+                            <span id="kpssResultLabel" class="text-[11px] font-bold uppercase text-emerald-400 block">Tahmini KPSS P3 Puanınız</span>
+                            <div class="flex items-baseline justify-center sm:justify-start gap-2 mt-0.5">
+                                <span id="kpssScoreDisplay" class="font-display text-3xl sm:text-4xl font-extrabold">78.450</span>
+                                <span id="kpssTotalNetDisplay" class="text-xs text-slate-300">(75.00 Net)</span>
+                            </div>
+                            <p id="kpssMatchHint" class="text-xs text-amber-300 mt-1 font-medium">Uygun ilanlar hesaplanıyor...</p>
+                        </div>
+                        <button onclick="filterByCalculatedKpss()" class="w-full sm:w-auto px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-md transition whitespace-nowrap">
+                            Uygun İlanları Göster
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 3: YÖNETİCİ ŞİFRE GİRİŞ MODALI                                  -->
+    <!-- ===================================================================== -->
+    <div id="adminLoginModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-navy-950/80 backdrop-blur-sm" onclick="closeAdminLogin()"></div>
+        <div class="flex min-h-full items-center justify-center p-4">
+            <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200 p-6 animate-fade-in">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="w-11 h-11 rounded-2xl bg-navy-900 text-amber-400 flex items-center justify-center">
+                        <i data-lucide="lock" class="w-5 h-5"></i>
+                    </div>
+                    <button onclick="closeAdminLogin()" class="p-2 rounded-xl text-slate-400 hover:bg-slate-100">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <h3 class="font-display text-xl font-extrabold text-navy-900">Yönetim Paneli Girişi</h3>
+                <p class="text-xs text-slate-500 mt-1 mb-5">
+                    İlan eklemek, düzenlemek veya bulut veritabanı bağlantısını yönetmek için yönetici şifrenizi girin.
+                </p>
+
+                <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                    <div>
+                        <label for="adminPassInput" class="block text-xs font-extrabold uppercase text-slate-500 mb-1.5">Yönetici Şifresi</label>
+                        <input type="password" id="adminPassInput" required placeholder="••••"
+                            class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-300 text-base font-bold tracking-widest focus:outline-none focus:ring-2 focus:ring-gov-700">
+                        <p class="text-[11px] text-slate-400 mt-1.5">Varsayılan ilk giriş şifresi: <strong class="text-slate-600">1234</strong></p>
+                    </div>
+                    <button type="submit" class="w-full py-3.5 rounded-xl bg-gov-800 hover:bg-navy-900 text-white font-bold text-sm shadow-md transition">
+                        Panele Giriş Yap
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 4: YÖNETİM PANELİ (ADMIN DASHBOARD - 3 SEKMELİ MOBİL UYUMLU)    -->
+    <!-- ===================================================================== -->
+    <div id="adminPanelModal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-navy-950/85 backdrop-blur-sm" onclick="closeAdminPanel()"></div>
+        <div class="flex min-h-full items-center justify-center p-2 sm:p-6">
+            <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 animate-fade-in">
+                
+                <!-- Yönetim Üst Barı -->
+                <div class="bg-navy-950 text-white px-5 sm:px-6 py-4 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                            <i data-lucide="settings" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-display text-base sm:text-lg font-extrabold">KamuPusula v2 Yönetim Paneli</h3>
+                            <p id="adminModeSubtitle" class="text-[11px] text-slate-300">İlan Yönetimi & Bulut Senkronizasyonu</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="logoutAdmin()" class="px-3 py-2 rounded-xl bg-red-600/20 hover:bg-red-600 text-red-200 hover:text-white text-xs font-bold transition">
+                            Çıkış
+                        </button>
+                        <button onclick="closeAdminPanel()" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3 Sekmeli Gezinme Barı -->
+                <div class="bg-slate-100 px-4 sm:px-6 pt-3 flex gap-2 overflow-x-auto no-scrollbar border-b border-slate-200">
+                    <button onclick="switchAdminTab('form')" id="tabBtnForm" class="admin-tab px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-extrabold bg-white text-gov-800 border-t border-x border-slate-200 whitespace-nowrap">
+                        + Yeni İlan Ekle / Düzenle
+                    </button>
+                    <button onclick="switchAdminTab('manage')" id="tabBtnManage" class="admin-tab px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-bold text-slate-600 hover:text-navy-900 whitespace-nowrap">
+                        Mevcut İlanlar (<span id="adminTotalBadge">0</span>)
+                    </button>
+                    <button onclick="switchAdminTab('settings')" id="tabBtnSettings" class="admin-tab px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-bold text-slate-600 hover:text-navy-900 whitespace-nowrap flex items-center gap-1.5">
+                        <i data-lucide="database" class="w-3.5 h-3.5"></i>
+                        <span>Veritabanı & Güvenlik</span>
+                    </button>
+                </div>
+
+                <!-- Sekme İçerikleri -->
+                <div class="p-4 sm:p-6 max-h-[78vh] overflow-y-auto">
+                    
+                    <!-- SEKME 1: YENİ İLAN EKLE / DÜZENLE FORMU -->
+                    <div id="adminTabForm" class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h4 id="formHeading" class="font-display text-base font-extrabold text-navy-900">Yeni Kamu İlanı Yayınla</h4>
+                            <button type="button" id="cancelEditBtn" onclick="resetAdminForm()" class="hidden text-xs font-bold text-red-600 hover:underline">
+                                Düzenlemeyi İptal Et
+                            </button>
+                        </div>
+
+                        <form id="jobForm" onsubmit="handleSaveJob(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <input type="hidden" id="editJobId">
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Kurum Adı *</label>
+                                <input type="text" id="fInstitution" required placeholder="Örn: T.C. Sağlık Bakanlığı"
+                                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-gov-700 focus:outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">İlan Başlığı / Kadro *</label>
+                                <input type="text" id="fTitle" required placeholder="Örn: 5.000 Sözleşmeli Hemşire ve Sağlık Personeli"
+                                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-gov-700 focus:outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Portal Kategorisi *</label>
+                                <select id="fCategory" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-gov-700 focus:outline-none">
+                                    <option value="Merkezi Atama (KPSS)">Merkezi Atama (KPSS)</option>
+                                    <option value="Sözleşmeli (4/B)">Sözleşmeli (4/B)</option>
+                                    <option value="Kamu İşçisi (İŞKUR)">Kamu İşçisi (İŞKUR)</option>
+                                    <option value="Akademik & Askeri">Akademik & Askeri</option>
+                                    <option value="Belediye & Kurumlar">Belediye & Kurumlar</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Kadro / Alım Türü *</label>
+                                <select id="fRecruitType" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-gov-700 focus:outline-none">
+                                    <option value="Memur">Memur</option>
+                                    <option value="Sözleşmeli Personel">Sözleşmeli Personel</option>
+                                    <option value="Sürekli İşçi">Sürekli İşçi</option>
+                                    <option value="Akademik">Akademik</option>
+                                    <option value="Askeri/Polis">Askeri/Polis</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Şehir *</label>
+                                <select id="fCity" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-gov-700 focus:outline-none">
+                                    <option value="Türkiye Geneli">Türkiye Geneli</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Eğitim Düzeyi *</label>
+                                <select id="fEducation" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-gov-700 focus:outline-none">
+                                    <option value="Tümü">Tümü (Lise + Önlisans + Lisans)</option>
+                                    <option value="İlköğretim">İlköğretim</option>
+                                    <option value="Ortaöğretim">Ortaöğretim (Lise)</option>
+                                    <option value="Önlisans">Önlisans</option>
+                                    <option value="Lisans">Lisans</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">KPSS Türü & Taban Puanı *</label>
+                                <input type="text" id="fKpss" required placeholder="Örn: KPSS P93 - 60 Puan veya KPSS Şartsız"
+                                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-gov-700 focus:outline-none">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">Kontenjan *</label>
+                                    <input type="number" id="fQuota" required min="1" placeholder="Örn: 250"
+                                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-gov-700 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 mb-1">Son Başvuru *</label>
+                                    <input type="date" id="fDeadline" required
+                                        class="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-gov-700 focus:outline-none">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Nitelik Kodları (Virgülle ayırın)</label>
+                                <input type="text" id="fCodes" placeholder="Örn: 3001, 4001, 6225"
+                                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-gov-700 focus:outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Resmi Başvuru Linki *</label>
+                                <input type="url" id="fUrl" required value="https://isealimkariyerkapisi.cbiko.gov.tr"
+                                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-gov-700 focus:outline-none">
+                            </div>
+
+                            <div class="sm:col-span-2">
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Başvuru Şartları ve Kılavuz Detayları *</label>
+                                <textarea id="fDetails" rows="4" required placeholder="Genel şartlar, özel şartlar, yaş sınırı, boy/kilo veya mesleki belge gereksinimlerini buraya yazın..."
+                                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-gov-700 focus:outline-none"></textarea>
+                            </div>
+
+                            <div class="sm:col-span-2 pt-2">
+                                <button type="submit" id="saveJobBtn" class="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm shadow-md transition flex items-center justify-center gap-2">
+                                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                                    <span>İlanı Yayınla</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- SEKME 2: MEVCUT İLANLARI YÖNET -->
+                    <div id="adminTabManage" class="hidden space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <input type="text" id="adminManageSearch" oninput="renderAdminManageList()" placeholder="Yönetim listesinde kurum veya kadro ara..."
+                                class="w-full sm:w-80 px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-sm">
+                            
+                            <button onclick="seedDefaultJobsToDb()" class="px-4 py-2.5 rounded-xl bg-gov-50 hover:bg-gov-100 text-gov-800 border border-gov-200 text-xs font-bold transition whitespace-nowrap">
+                                + Örnek Kamu İlanlarını Yükle
+                            </button>
+                        </div>
+
+                        <div id="adminJobsList" class="space-y-2.5">
+                            <!-- JS ile doldurulacak -->
+                        </div>
+                    </div>
+
+                    <!-- SEKME 3: VERİTABANI (FIREBASE) & GÜVENLİK AYARLARI -->
+                    <div id="adminTabSettings" class="hidden space-y-6">
+                        
+                        <!-- Canlı Bağlantı Durum Kartı -->
+                        <div id="firebaseStatusBanner" class="p-4 rounded-2xl border bg-amber-50 border-amber-200 text-amber-950">
+                            <div class="flex items-start gap-3">
+                                <i data-lucide="hard-drive" class="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0"></i>
+                                <div>
+                                    <h5 class="text-sm font-extrabold" id="fbCardTitle">Şu An Yerel Mod (LocalStorage) Kullanılıyor</h5>
+                                    <p class="text-xs mt-1 leading-relaxed" id="fbCardDesc">
+                                        Eklediğiniz ilanlar şu an yalnızca bu cihazda saklanır. Eklediğiniz ilanların tüm Türkiye'deki ziyaretçilerde anlık görünmesi için aşağıya ücretsiz Google Firebase yapılandırma kodunuzu yapıştırın.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Firebase Yapılandırma Formu -->
+                        <div class="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <label for="firebaseConfigInput" class="text-xs font-extrabold uppercase text-navy-900">
+                                    Firebase Config Kodu (JSON veya JS Nesnesi)
+                                </label>
+                                <button type="button" onclick="disconnectFirebase()" id="disconnectFbBtn" class="hidden text-xs font-bold text-red-600 hover:underline">
+                                    Bulut Bağlantısını Kes
+                                </button>
+                            </div>
+                            <textarea id="firebaseConfigInput" rows="6" placeholder='Firebase Console ekranından aldığınız kodu buraya doğrudan yapıştırın:
+const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "kamupusula.firebaseapp.com",
+  projectId: "kamupusula",
+  ...
+};'
+                                class="w-full p-3.5 rounded-xl bg-white border border-slate-300 font-mono text-xs text-slate-800 focus:ring-2 focus:ring-gov-700 focus:outline-none"></textarea>
+
+                            <div class="flex flex-col sm:flex-row gap-2.5">
+                                <button type="button" onclick="connectAndSaveFirebase()" class="flex-1 py-3 px-4 rounded-xl bg-gov-800 hover:bg-navy-900 text-white font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2">
+                                    <i data-lucide="cloud-upload" class="w-4 h-4"></i>
+                                    <span>Firebase'e Bağlan ve Kaydet</span>
+                                </button>
+                                <button type="button" onclick="exportPermanentConfigSnippet()" class="py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-bold text-xs transition">
+                                    Kalıcı Kod Çıktısı Al
+                                </button>
+                            </div>
+
+                            <!-- Dışa Aktarma Kutusu -->
+                            <div id="exportSnippetBox" class="hidden pt-2">
+                                <p class="text-[11px] font-bold text-emerald-700 mb-1">Aşağıdaki kodu kopyalayıp tüm ziyaretçilerde kalıcı olması için index.html içine gömebilirsiniz:</p>
+                                <textarea id="exportSnippetText" readonly rows="4" class="w-full p-3 rounded-xl bg-navy-950 text-emerald-300 font-mono text-[11px]"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Yönetici Şifresi Değiştirme -->
+                        <div class="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200">
+                            <h5 class="text-xs font-extrabold uppercase text-navy-900 mb-3">Yönetici Giriş Şifresini Güncelle</h5>
+                            <form onsubmit="handleChangeAdminPassword(event)" class="flex flex-col sm:flex-row gap-2.5">
+                                <input type="password" id="newAdminPassInput" required minlength="4" placeholder="Yeni şifreniz (En az 4 karakter)"
+                                    class="flex-1 px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-sm font-medium focus:ring-2 focus:ring-gov-700 focus:outline-none">
+                                <button type="submit" class="px-5 py-2.5 rounded-xl bg-navy-900 hover:bg-gov-800 text-white font-bold text-xs sm:text-sm transition">
+                                    Şifreyi Güncelle
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bildirim Toast Kutusu -->
+    <div id="toast" class="fixed bottom-4 right-4 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="bg-navy-950 text-white px-4 py-3.5 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-3 max-w-sm">
+            <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h5 id="toastTitle" class="text-xs sm:text-sm font-bold">Bildirim</h5>
+                <p id="toastMsg" class="text-[11px] sm:text-xs text-slate-300 mt-0.5">İşlem tamamlandı.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- JAVASCRIPT UYGULAMA MANTIĞI                                          -->
+    <!-- ===================================================================== -->
+    <script>
+        // =================================================================
+        // 1. KALICI FIREBASE CONFIG ALANI (İsterseniz buraya kendi config'inizi gömebilirsiniz)
+        // =================================================================
+        const EMBEDDED_FIREBASE_CONFIG = null;
+
+        // Türkiye'nin 81 İli
+        const TURKIYE_ILLERI = [
+            "Adana", "Adıyaman", "Afyonkarahisar", "Ağrı", "Amasya", "Ankara", "Antalya", "Artvin", "Aydın", "Balıkesir",
+            "Bilecik", "Bingöl", "Bitlis", "Bolu", "Burdur", "Bursa", "Çanakkale", "Çankırı", "Çorum", "Denizli",
+            "Diyarbakır", "Edirne", "Elazığ", "Erzincan", "Erzurum", "Eskişehir", "Gaziantep", "Giresun", "Gümüşhane", "Hakkari",
+            "Hatay", "Isparta", "Mersin", "İstanbul", "İzmir", "Kars", "Kastamonu", "Kayseri", "Kırklareli", "Kırşehir",
+            "Kocaeli", "Konya", "Kütahya", "Malatya", "Manisa", "Kahramanmaraş", "Mardin", "Muğla", "Muş", "Nevşehir",
+            "Niğde", "Ordu", "Rize", "Sakarya", "Samsun", "Siirt", "Sinop", "Sivas", "Tekirdağ", "Tokat",
+            "Trabzon", "Tunceli", "Şanlıurfa", "Uşak", "Van", "Yozgat", "Zonguldak", "Aksaray", "Bayburt", "Karaman",
+            "Kırıkkale", "Batman", "Şırnak", "Bartın", "Ardahan", "Iğdır", "Yalova", "Karabük", "Kilis", "Osmaniye", "Düzce"
+        ];
+
+        // 10 Gerçekçi Varsayılan Kamu Personeli Alım İlanı
+        const DEFAULT_JOBS = [
+            {
+                id: "job_101",
+                institution: "T.C. Sağlık Bakanlığı",
+                title: "15.240 Sözleşmeli Sağlık Personeli ve Destek Personeli Alımı (KPSS-2026/5)",
+                category: "Sözleşmeli (4/B)",
+                recruitType: "Sözleşmeli Personel",
+                city: "Türkiye Geneli",
+                education: "Tümü",
+                kpss: "KPSS P3 / P93 / P94 - 55 Puan",
+                quota: 15240,
+                codes: ["4001", "3001", "2001", "3003", "4611"],
+                deadline: "2026-11-26",
+                applyUrl: "https://ais.osym.gov.tr",
+                details: "657 sayılı Devlet Memurları Kanunu'nun 4/B maddesi kapsamında taşra teşkilatı hizmet birimlerinde istihdam edilmek üzere mülakatsız doğrudan ÖSYM merkezi yerleştirme puan üstünlüğüne göre 6.800 Hemşire, 1.450 Ebe, 3.900 Sağlık Teknikeri ve Destek Personeli alınacaktır.\n\nÖzlük Hakları: Taban maaş + teşvik ek ödemeleri dahil ortalama 54.500 TL - 62.000 TL aralığındadır."
+            },
+            {
+                id: "job_102",
+                institution: "T.C. Adalet Bakanlığı",
+                title: "5.500 Sözleşmeli Zabıt Katibi, İnfaz ve Koruma Memuru (İKM) ve Mübaşir Alımı",
+                category: "Sözleşmeli (4/B)",
+                recruitType: "Sözleşmeli Personel",
+                city: "Türkiye Geneli",
+                education: "Tümü",
+                kpss: "KPSS P3 / P93 / P94 - 70 Puan",
+                quota: 5500,
+                codes: ["4001", "3001", "2001"],
+                deadline: "2026-12-03",
+                applyUrl: "https://isealimkariyerkapisi.cbiko.gov.tr",
+                details: "Adli ve İdari Yargı İlk Derece Mahkemeleri Adalet Komisyonları emrine 2.150 Zabıt Katibi, 2.400 İnfaz ve Koruma Memuru ve 650 Mübaşir alınacaktır.\n\nÖzel Şartlar: Zabıt katipliği için uygulama sınavında 3 dakikada en az 90 kelime hatasız yazmak; İKM için 30 yaşını bitirmemiş ve boy-kilo şartını sağlamış olmak gerekir."
+            },
+            {
+                id: "job_103",
+                institution: "Devlet Su İşleri (DSİ) Genel Müdürlüğü",
+                title: "1.389 Sürekli İşçi (Operatör, Ağır Vasıta Şoförü ve Bakım Onarım İşçisi)",
+                category: "Kamu İşçisi (İŞKUR)",
+                recruitType: "Sürekli İşçi",
+                city: "Türkiye Geneli",
+                education: "Ortaöğretim",
+                kpss: "KPSS Şartsız (Noter Kurası)",
+                quota: 1389,
+                codes: ["ISKUR-KURA"],
+                deadline: "2026-11-25",
+                applyUrl: "https://esube.iskur.gov.tr",
+                details: "DSİ Bölge Müdürlüklerinde istihdam edilmek üzere KPSS şartı aranmaksızın doğrudan noter kurası ile 1.389 sürekli işçi alınacaktır.\n\nŞartlar: 18-35 yaş aralığında olmak, operatörlük ve şoförlük kadroları için ilgili sürücü belgesine sahip olmak. Kamu Toplu İş Sözleşmesi kapsamında ikramiye ve sosyal yardımlar dahildir."
+            },
+            {
+                id: "job_104",
+                institution: "T.C. Milli Eğitim Bakanlığı (MEB)",
+                title: "3.000 Sözleşmeli Öğretmen Ek Atama Duyurusu",
+                category: "Sözleşmeli (4/B)",
+                recruitType: "Sözleşmeli Personel",
+                city: "Ankara",
+                education: "Lisans",
+                kpss: "KPSS P10 / P121 - 50 Puan",
+                quota: 3000,
+                codes: ["4421", "4459", "4431"],
+                deadline: "2026-12-05",
+                applyUrl: "https://www.turkiye.gov.tr",
+                details: "Sınıf Öğretmenliği, Özel Eğitim Öğretmenliği ve Okul Öncesi Öğretmenliği branşlarında 3.000 sözleşmeli öğretmen alımı yapılacaktır. Başvurular e-Devlet üzerinden elektronik ortamda alınacaktır."
+            },
+            {
+                id: "job_105",
+                institution: "TCDD Taşımacılık A.Ş. Genel Müdürlüğü",
+                title: "412 Tren Makinisti, Demiryolu Hattı Bakım ve Elektronik İşçisi Alımı",
+                category: "Kamu İşçisi (İŞKUR)",
+                recruitType: "Sürekli İşçi",
+                city: "Ankara",
+                education: "Önlisans",
+                kpss: "KPSS P93 - 60 Puan",
+                quota: 412,
+                codes: ["3290", "2045"],
+                deadline: "2026-11-26",
+                applyUrl: "https://esube.iskur.gov.tr",
+                details: "TCDD Taşımacılık işyerlerinde belirsiz süreli iş sözleşmesiyle çalıştırılmak üzere 180 Tren Makinisti ve 232 teknik işçi alınacaktır. 35 yaşından gün almamış olmak ve sağlık kurulu raporu almak şarttır."
+            },
+            {
+                id: "job_106",
+                institution: "T.C. Gençlik ve Spor Bakanlığı (GSB)",
+                title: "1.150 Yurt Yönetim Personeli ve Gençlik Çalışanı Alımı",
+                category: "Sözleşmeli (4/B)",
+                recruitType: "Sözleşmeli Personel",
+                city: "Türkiye Geneli",
+                education: "Lisans",
+                kpss: "KPSS P3 - 60 Puan",
+                quota: 1150,
+                codes: ["4001", "4255"],
+                deadline: "2026-11-30",
+                applyUrl: "https://isealimkariyerkapisi.cbiko.gov.tr",
+                details: "Kredi ve Yurtlar Genel Müdürlüğü taşra teşkilatı yurt müdürlüklerinde görevlendirilmek üzere 4001 kodu ile herhangi bir lisans mezunu adaylar arasından 650 Yurt Yönetim Personeli ve 500 Gençlik Çalışanı alınacaktır."
+            },
+            {
+                id: "job_107",
+                institution: "TÜBİTAK BİLGEM & SAGE",
+                title: "240 Ar-Ge Araştırmacısı, Uzman Yardımcısı ve Teknisyen Alımı",
+                category: "Akademik & Askeri",
+                recruitType: "Akademik",
+                city: "Ankara",
+                education: "Lisans",
+                kpss: "KPSS Şartsız",
+                quota: 240,
+                codes: ["4531", "4639"],
+                deadline: "2026-11-28",
+                applyUrl: "https://kariyer.tubitak.gov.tr",
+                details: "Savunma sanayii ve bilişim projelerinde görev alacak bilgisayar, elektronik ve makine mühendisleri için KPSS şartı aranmaksızın mezuniyet ortalaması (en az 3.00/4.00) ve YDS/YÖKDİL puanı ile alım yapılacaktır."
+            },
+            {
+                id: "job_108",
+                institution: "İstanbul Büyükşehir Belediyesi (İBB)",
+                title: "785 Kadrolu İtfaiye Eri ve Zabıta Memuru Alım İlanı (657 4/A)",
+                category: "Belediye & Kurumlar",
+                recruitType: "Memur",
+                city: "İstanbul",
+                education: "Tümü",
+                kpss: "KPSS P3 / P93 / P94 - 60 Puan",
+                quota: 785,
+                codes: ["4001", "3001", "2001"],
+                deadline: "2026-12-02",
+                applyUrl: "https://www.turkiye.gov.tr",
+                details: "657 sayılı Devlet Memurları Kanunu'na tabi kadrolu 525 İtfaiye Eri ve 260 Zabıta Memuru alınacaktır. 30 yaşını doldurmamış olmak ve boy-kilo şartını taşımak gereklidir."
+            },
+            {
+                id: "job_109",
+                institution: "Sivas Cumhuriyet Üniversitesi Hastanesi",
+                title: "165 Sözleşmeli Hemşire, Sağlık Teknikeri ve Büro Personeli (Mülakatsız)",
+                category: "Sözleşmeli (4/B)",
+                recruitType: "Sözleşmeli Personel",
+                city: "Sivas",
+                education: "Tümü",
+                kpss: "KPSS P3 / P93 / P94 - 55 Puan",
+                quota: 165,
+                codes: ["4001", "3001", "2001"],
+                deadline: "2026-11-29",
+                applyUrl: "https://isealimkariyerkapisi.cbiko.gov.tr",
+                details: "Üniversitemiz Sağlık Uygulama ve Araştırma Hastanesine hiçbir yazılı veya sözlü mülakat yapılmaksızın doğrudan 2026 KPSS puan sıralaması ile 80 Hemşire, 35 Tekniker, 20 Büro Personeli ve 30 Destek Personeli alınacaktır."
+            },
+            {
+                id: "job_110",
+                institution: "ÖSYM Merkezî Yerleştirme (KPSS-2026/2)",
+                title: "Bakanlıklar ve KİT'lere 2.450 Kadrolu Memur ve Mühendis Ataması",
+                category: "Merkezi Atama (KPSS)",
+                recruitType: "Memur",
+                city: "Türkiye Geneli",
+                education: "Tümü",
+                kpss: "KPSS P3 / P93 / P94 - 65 Puan",
+                quota: 2450,
+                codes: ["4001", "3001", "2001", "6225"],
+                deadline: "2026-12-08",
+                applyUrl: "https://ais.osym.gov.tr",
+                details: "Kamu kurum ve kuruluşlarının kadro ve pozisyonlarına mülakatsız olarak KPSS puan üstünlüğü ve tercih sırasına göre 4/A kadrolu VHKİ, Memur, Mühendis ve Tekniker yerleştirmesi yapılacaktır."
+            }
+        ];
+
+        // =================================================================
+        // 2. UYGULAMA DURUMU (STATE)
+        // =================================================================
+        let allJobs = [];
+        let favoriteIds = JSON.parse(localStorage.getItem('kp_v2_favs') || '[]');
+        let activeCategory = 'ALL';
+        let quickStatMode = 'ALL'; // ALL, QUOTA, NO_KPSS, CLOSING_SOON
+        let showFavoritesOnly = false;
+        let kpssFilterLimit = null; // { edu: 'Lisans', score: 78.4 }
+        let isAdminAuthenticated = false;
+
+        // Firebase Çalışma Değişkenleri
+        let db = null;
+        let isFirebaseLive = false;
+        let unsubscribeSnapshot = null;
+
+        // =================================================================
+        // 3. BAŞLATMA VE ŞEHİR LİSTELERİNİ DOLDURMA
+        // =================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            populateCityDropdowns();
+            bindFilterEvents();
+            updateFavoriteBadge();
+            calculateKpss();
+
+            // Kayıtlı veya Gömülü Firebase Config kontrolü
+            const savedConfigStr = localStorage.getItem('kp_v2_firebase_config');
+            if (EMBEDDED_FIREBASE_CONFIG) {
+                initFirebaseConnection(EMBEDDED_FIREBASE_CONFIG, false);
+            } else if (savedConfigStr) {
+                try {
+                    const parsed = JSON.parse(savedConfigStr);
+                    document.getElementById('firebaseConfigInput').value = JSON.stringify(parsed, null, 2);
+                    initFirebaseConnection(parsed, false);
+                } catch (e) {
+                    loadLocalJobs();
+                }
+            } else {
+                loadLocalJobs();
+            }
+
+            lucide.createIcons();
+        });
+
+        function populateCityDropdowns() {
+            const filterSel = document.getElementById('cityFilter');
+            const adminSel = document.getElementById('fCity');
+
+            TURKIYE_ILLERI.forEach(il => {
+                const opt1 = document.createElement('option');
+                opt1.value = il;
+                opt1.textContent = il;
+                filterSel.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = il;
+                opt2.textContent = il;
+                adminSel.appendChild(opt2);
+            });
+        }
+
+        function bindFilterEvents() {
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', () => {
+                document.getElementById('clearSearchBtn').classList.toggle('hidden', searchInput.value.trim() === '');
+                renderJobs();
+            });
+
+            document.getElementById('cityFilter').addEventListener('change', renderJobs);
+            document.getElementById('eduFilter').addEventListener('change', () => {
+                kpssFilterLimit = null;
+                renderJobs();
+            });
+            document.getElementById('typeFilter').addEventListener('change', renderJobs);
+            document.getElementById('noKpssToggle').addEventListener('change', renderJobs);
+            document.getElementById('sortSelect').addEventListener('change', renderJobs);
+        }
+
+        // =================================================================
+        // 4. VERİTABANI KATMANI (LOCALSTORAGE & FIREBASE FIRESTORE)
+        // =================================================================
+        function loadLocalJobs() {
+            isFirebaseLive = false;
+            updateDbStatusUI(false);
+
+            const localData = localStorage.getItem('kp_v2_jobs');
+            if (localData) {
+                try {
+                    allJobs = JSON.parse(localData);
+                } catch (e) {
+                    allJobs = [...DEFAULT_JOBS];
+                }
+            } else {
+                allJobs = [...DEFAULT_JOBS];
+                localStorage.setItem('kp_v2_jobs', JSON.stringify(allJobs));
+            }
+            refreshPortalUI();
+        }
+
+        function saveLocalJobs() {
+            localStorage.setItem('kp_v2_jobs', JSON.stringify(allJobs));
+            refreshPortalUI();
+        }
+
+        // Kullanıcıdan gelen JS veya JSON Firebase Config metnini akıllı ayrıştırıcı
+        function parseFirebaseConfigText(rawText) {
+            let cleaned = rawText.trim();
+            // "const firebaseConfig = " gibi önekleri temizle
+            const firstBrace = cleaned.indexOf('{');
+            const lastBrace = cleaned.lastIndexOf('}');
+            if (firstBrace === -1 || lastBrace === -1) {
+                throw new Error("Geçerli bir süslü parantez { ... } bloğu bulunamadı.");
+            }
+            cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+
+            // JS anahtarlarını çift tırnaklı geçerli JSON'a çevir (apiKey: -> "apiKey":)
+            const jsonReady = cleaned
+                .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?\s*:/g, '"$2":')
+                .replace(/'/g, '"')
+                .replace(/,\s*}/g, '}');
+
+            const configObj = JSON.parse(jsonReady);
+            if (!configObj.apiKey || !configObj.projectId) {
+                throw new Error("apiKey veya projectId alanları eksik.");
+            }
+            return configObj;
+        }
+
+        function connectAndSaveFirebase() {
+            const rawInput = document.getElementById('firebaseConfigInput').value;
+            if (!rawInput.trim()) {
+                showToast("Eksik Bilgi", "Lütfen Firebase Console'dan kopyaladığınız config kodunu yapıştırın.");
+                return;
+            }
+
+            try {
+                const configObj = parseFirebaseConfigText(rawInput);
+                localStorage.setItem('kp_v2_firebase_config', JSON.stringify(configObj));
+                initFirebaseConnection(configObj, true);
+            } catch (err) {
+                showToast("Format Hatası", "Config kodu okunamadı: " + err.message);
+            }
+        }
+
+        function initFirebaseConnection(configObj, isManualConnect) {
+            try {
+                if (unsubscribeSnapshot) {
+                    unsubscribeSnapshot();
+                    unsubscribeSnapshot = null;
+                }
+
+                // Mevcut Firebase uygulaması varsa silip yeniden başlat
+                if (firebase.apps.length > 0) {
+                    firebase.apps.forEach(app => app.delete());
+                }
+
+                firebase.initializeApp(configObj);
+                db = firebase.firestore();
+
+                // Gerçek zamanlı dinleyici (onSnapshot)
+                unsubscribeSnapshot = db.collection('ilanlar').onSnapshot(
+                    (snapshot) => {
+                        isFirebaseLive = true;
+                        updateDbStatusUI(true, configObj.projectId);
+
+                        const cloudJobs = [];
+                        snapshot.forEach(doc => {
+                            cloudJobs.push({ id: doc.id, ...doc.data() });
+                        });
+
+                        allJobs = cloudJobs;
+                        refreshPortalUI();
+
+                        if (isManualConnect) {
+                            showToast("Bulut Bağlantısı Başarılı!", "Firebase Firestore canlı olarak bağlandı.");
+                            isManualConnect = false;
+                        }
+                    },
+                    (error) => {
+                        console.error("Firestore bağlantı hatası:", error);
+                        isFirebaseLive = false;
+                        updateDbStatusUI(false);
+                        showToast("Veritabanı Yetki Uyarısı", "Firestore erişilemedi. Lütfen Test Modu kurallarını kontrol edin.");
+                        loadLocalJobs();
+                    }
+                );
+            } catch (err) {
+                console.error(err);
+                showToast("Bağlantı Hatası", "Firebase başlatılamadı.");
+                loadLocalJobs();
+            }
+        }
+
+        function disconnectFirebase() {
+            if (unsubscribeSnapshot) {
+                unsubscribeSnapshot();
+                unsubscribeSnapshot = null;
+            }
+            localStorage.removeItem('kp_v2_firebase_config');
+            db = null;
+            isFirebaseLive = false;
+            document.getElementById('firebaseConfigInput').value = '';
+            loadLocalJobs();
+            showToast("Bağlantı Kesildi", "Portal yeniden Yerel Mod (LocalStorage) üzerine alındı.");
+        }
+
+        function updateDbStatusUI(live, projectId = '') {
+            const dot = document.getElementById('dbStatusDot');
+            const text = document.getElementById('dbStatusText');
+            const banner = document.getElementById('firebaseStatusBanner');
+            const cardTitle = document.getElementById('fbCardTitle');
+            const cardDesc = document.getElementById('fbCardDesc');
+            const discBtn = document.getElementById('disconnectFbBtn');
+
+            if (live) {
+                dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-ping";
+                text.textContent = `Canlı Bulut Modu (Firebase: ${projectId})`;
+                text.className = "font-semibold text-emerald-300";
+
+                banner.className = "p-4 rounded-2xl border bg-emerald-50 border-emerald-200 text-emerald-950";
+                cardTitle.textContent = `Canlı Bulut Modu Aktif (${projectId})`;
+                cardDesc.textContent = "Harika! Eklediğiniz ve düzenlediğiniz tüm ilanlar anında bulut veritabanına kaydediliyor ve sitenize giren tüm ziyaretçilerde görünüyor.";
+                discBtn.classList.remove('hidden');
+            } else {
+                dot.className = "w-2 h-2 rounded-full bg-amber-400";
+                text.textContent = "Yerel Mod (Cihaz İçi Depolama)";
+                text.className = "font-medium text-slate-300";
+
+                banner.className = "p-4 rounded-2xl border bg-amber-50 border-amber-200 text-amber-950";
+                cardTitle.textContent = "Şu An Yerel Mod (LocalStorage) Kullanılıyor";
+                cardDesc.textContent = "Eklediğiniz ilanlar şu an yalnızca bu cihazda saklanır. Tüm ziyaretçilerin görebilmesi için ücretsiz Firebase config kodunuzu aşağıya yapıştırın.";
+                discBtn.classList.add('hidden');
+            }
+        }
+
+        function exportPermanentConfigSnippet() {
+            const raw = document.getElementById('firebaseConfigInput').value;
+            if (!raw.trim()) {
+                showToast("Uyarı", "Önce Firebase config kodunu yukarıdaki kutuya yapıştırın.");
+                return;
+            }
+            try {
+                const obj = parseFirebaseConfigText(raw);
+                const codeStr = `const EMBEDDED_FIREBASE_CONFIG = ${JSON.stringify(obj, null, 2)};`;
+                document.getElementById('exportSnippetText').value = codeStr;
+                document.getElementById('exportSnippetBox').classList.remove('hidden');
+                showToast("Kod Hazır", "Kalıcı yapılandırma satırı oluşturuldu.");
+            } catch (e) {
+                showToast("Hata", "Geçersiz config formatı.");
+            }
+        }
+
+        // =================================================================
+        // 5. İSTATİSTİK, FİLTRELEME VE İLAN KARTLARI RENDER İŞLEMLERİ
+        // =================================================================
+        function getDaysRemaining(deadlineStr) {
+            if (!deadlineStr) return 7;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const target = new Date(deadlineStr);
+            target.setHours(0, 0, 0, 0);
+            const diffTime = target - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays;
+        }
+
+        function formatTurkishDate(dateStr) {
+            if (!dateStr) return "Belirtilmedi";
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            const months = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+            const day = parseInt(parts[2], 10);
+            const monthName = months[parseInt(parts[1], 10) - 1] || parts[1];
+            return `${day} ${monthName} ${parts[0]}`;
+        }
+
+        function isJobKpssExempt(job) {
+            const k = (job.kpss || '').toLowerCase();
+            return k.includes('şartsız') || k.includes('sartsiz') || k.includes('kura') || k.includes('yok');
+        }
+
+        function extractMinScore(kpssStr) {
+            const match = (kpssStr || '').match(/(\d{2,3})\s*puan/i);
+            return match ? parseInt(match[1], 10) : 0;
+        }
+
+        function refreshPortalUI() {
+            updateStatsBanner();
+            renderJobs();
+            if (isAdminAuthenticated) {
+                renderAdminManageList();
+            }
+        }
+
+        function updateStatsBanner() {
+            const totalActive = allJobs.length;
+            const totalQuota = allJobs.reduce((acc, j) => acc + (parseInt(j.quota, 10) || 0), 0);
+            const noKpssCount = allJobs.filter(j => isJobKpssExempt(j)).length;
+            const closingCount = allJobs.filter(j => {
+                const d = getDaysRemaining(j.deadline);
+                return d >= 0 && d <= 3;
+            }).length;
+
+            document.getElementById('statActiveCount').textContent = totalActive;
+            document.getElementById('statTotalQuota').textContent = totalQuota.toLocaleString('tr-TR');
+            document.getElementById('statNoKpssCount').textContent = noKpssCount;
+            document.getElementById('statClosingCount').textContent = closingCount;
+            document.getElementById('adminTotalBadge').textContent = totalActive;
+        }
+
+        function setCategoryFilter(cat) {
+            activeCategory = cat;
+            showFavoritesOnly = false;
+            quickStatMode = 'ALL';
+
+            document.querySelectorAll('.cat-tab').forEach(btn => {
+                if (btn.dataset.cat === cat) {
+                    btn.className = "cat-tab flex-shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-gov-800 text-white transition";
+                } else {
+                    btn.className = "cat-tab flex-shrink-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 transition";
+                }
+            });
+
+            renderJobs();
+        }
+
+        function applyStatQuickFilter(mode) {
+            showFavoritesOnly = false;
+            quickStatMode = mode;
+            if (mode === 'QUOTA') {
+                document.getElementById('sortSelect').value = 'quota';
+            } else if (mode === 'CLOSING_SOON') {
+                document.getElementById('sortSelect').value = 'deadline';
+            }
+            renderJobs();
+            scrollToListings();
+        }
+
+        function quickSearch(term) {
+            showFavoritesOnly = false;
+            const input = document.getElementById('searchInput');
+            input.value = term;
+            document.getElementById('clearSearchBtn').classList.remove('hidden');
+            renderJobs();
+            scrollToListings();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            renderJobs();
+        }
+
+        function toggleFavoritesFilter() {
+            showFavoritesOnly = !showFavoritesOnly;
+            renderJobs();
+            scrollToListings();
+        }
+
+        function resetAllFilters() {
+            activeCategory = 'ALL';
+            quickStatMode = 'ALL';
+            showFavoritesOnly = false;
+            kpssFilterLimit = null;
+
+            document.getElementById('searchInput').value = '';
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            document.getElementById('cityFilter').value = 'ALL';
+            document.getElementById('eduFilter').value = 'ALL';
+            document.getElementById('typeFilter').value = 'ALL';
+            document.getElementById('noKpssToggle').checked = false;
+            document.getElementById('sortSelect').value = 'newest';
+
+            setCategoryFilter('ALL');
+        }
+
+        function renderJobs() {
+            const q = document.getElementById('searchInput').value.toLowerCase().trim();
+            const cityVal = document.getElementById('cityFilter').value;
+            const eduVal = document.getElementById('eduFilter').value;
+            const typeVal = document.getElementById('typeFilter').value;
+            const noKpssOnly = document.getElementById('noKpssToggle').checked;
+            const sortVal = document.getElementById('sortSelect').value;
+
+            let filtered = allJobs.filter(job => {
+                if (showFavoritesOnly && !favoriteIds.includes(job.id)) return false;
+                if (activeCategory !== 'ALL' && job.category !== activeCategory) return false;
+
+                if (quickStatMode === 'NO_KPSS' && !isJobKpssExempt(job)) return false;
+                if (quickStatMode === 'CLOSING_SOON') {
+                    const d = getDaysRemaining(job.deadline);
+                    if (d < 0 || d > 3) return false;
+                }
+
+                if (noKpssOnly && !isJobKpssExempt(job)) return false;
+
+                if (kpssFilterLimit) {
+                    const eduMatch = job.education === 'Tümü' || job.education === kpssFilterLimit.edu;
+                    if (!eduMatch) return false;
+                    if (!isJobKpssExempt(job)) {
+                        const minReq = extractMinScore(job.kpss);
+                        if (minReq > kpssFilterLimit.score) return false;
+                    }
+                }
+
+                if (q) {
+                    const codesStr = Array.isArray(job.codes) ? job.codes.join(' ') : (job.codes || '');
+                    const hay = `${job.institution} ${job.title} ${job.city} ${codesStr} ${job.kpss}`.toLowerCase();
+                    if (!hay.includes(q)) return false;
+                }
+
+                if (cityVal !== 'ALL') {
+                    if (job.city !== 'Türkiye Geneli' && job.city !== cityVal) return false;
+                }
+
+                if (eduVal !== 'ALL') {
+                    if (job.education !== 'Tümü' && job.education !== eduVal) return false;
+                }
+
+                if (typeVal !== 'ALL' && job.recruitType !== typeVal) return false;
+
+                return true;
+            });
+
+            // Sıralama
+            if (sortVal === 'deadline') {
+                filtered.sort((a, b) => getDaysRemaining(a.deadline) - getDaysRemaining(b.deadline));
+            } else if (sortVal === 'quota') {
+                filtered.sort((a, b) => (parseInt(b.quota, 10) || 0) - (parseInt(a.quota, 10) || 0));
+            } else {
+                filtered.reverse();
+            }
+
+            // Başlık ve Filtre Rozeti Güncelleme
+            const heading = document.getElementById('listHeading');
+            const badge = document.getElementById('activeFilterBadge');
+
+            if (showFavoritesOnly) {
+                heading.textContent = "Kaydettiğiniz Favori Kamu İlanları";
+                badge.textContent = "Favorilerim";
+                badge.classList.remove('hidden');
+            } else if (kpssFilterLimit) {
+                heading.textContent = `${kpssFilterLimit.score.toFixed(2)} KPSS Puanınıza Uygun İlanlar`;
+                badge.textContent = "KPSS Robotu Aktif";
+                badge.classList.remove('hidden');
+            } else if (quickStatMode !== 'ALL') {
+                const labels = { QUOTA: "En Yüksek Kontenjanlı Alımlar", NO_KPSS: "KPSS Şartsız Kamu İlanları", CLOSING_SOON: "Son 3 Günü Kalan İlanlar" };
+                heading.textContent = labels[quickStatMode];
+                badge.textContent = "Hızlı Filtre";
+                badge.classList.remove('hidden');
+            } else {
+                heading.textContent = "Güncel Kamu Personeli Alım İlanları";
+                badge.classList.add('hidden');
+            }
+
+            document.getElementById('visibleCount').textContent = filtered.length;
+
+            const container = document.getElementById('jobsContainer');
+            const emptyState = document.getElementById('emptyState');
+
+            if (filtered.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                container.innerHTML = filtered.map(job => createJobCardHTML(job)).join('');
+            }
+
+            lucide.createIcons();
+        }
+
+        function createJobCardHTML(job) {
+            const isFav = favoriteIds.includes(job.id);
+            const daysLeft = getDaysRemaining(job.deadline);
+            const exempt = isJobKpssExempt(job);
+            const codesArr = Array.isArray(job.codes) ? job.codes : (job.codes ? job.codes.split(',').map(s => s.trim()).filter(Boolean) : []);
+
+            let urgencyHTML = '';
+            if (daysLeft < 0) {
+                urgencyHTML = `<span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-200 text-slate-600">Süresi Doldu</span>`;
+            } else if (daysLeft === 0) {
+                urgencyHTML = `<span class="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-red-600 text-white">SON GÜN!</span>`;
+            } else if (daysLeft <= 3) {
+                urgencyHTML = `<span class="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-red-50 text-red-700 border border-red-200">Son ${daysLeft} Gün</span>`;
+            } else if (daysLeft <= 6) {
+                urgencyHTML = `<span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">Son ${daysLeft} Gün</span>`;
+            } else {
+                urgencyHTML = `<span class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif İlan</span>`;
+            }
+
+            return `
+                <article onclick="openDetailModal('${job.id}')" class="cursor-pointer bg-white rounded-3xl border border-slate-200/90 p-5 shadow-2xs hover:shadow-xl hover:border-gov-600 transition-all flex flex-col justify-between group">
+                    <div>
+                        <!-- Üst Satır: Kurum & Favori & Aciliyet -->
+                        <div class="flex items-start justify-between gap-2.5 mb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-11 h-11 rounded-2xl bg-gov-50 text-gov-800 border border-gov-100 flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="landmark" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <span class="text-[11px] font-bold text-gov-700 block">${job.category}</span>
+                                    <h3 class="font-display text-sm sm:text-base font-extrabold text-navy-900 group-hover:text-gov-700 transition leading-snug">
+                                        ${job.institution}
+                                    </h3>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 flex-shrink-0">
+                                ${urgencyHTML}
+                                <button onclick="toggleFavorite(event, '${job.id}')" aria-label="Favorilere Ekle"
+                                    class="w-9 h-9 rounded-xl border ${isFav ? 'bg-rose-50 border-rose-200 text-red-600' : 'bg-slate-50 border-slate-200 text-slate-400 hover:text-red-600'} flex items-center justify-center transition">
+                                    <i data-lucide="heart" class="w-4 h-4 ${isFav ? 'fill-current' : ''}"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- İlan Başlığı -->
+                        <h4 class="text-sm sm:text-base font-bold text-slate-800 mb-3 leading-snug">
+                            ${job.title}
+                        </h4>
+
+                        <!-- KPSS & Nitelik Kodları -->
+                        <div class="flex flex-wrap items-center gap-1.5 mb-4">
+                            <span class="px-2.5 py-1 rounded-lg text-xs font-bold border ${exempt ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-gov-50 text-gov-800 border-gov-200'}">
+                                ${job.kpss}
+                            </span>
+                            ${codesArr.slice(0, 3).map(code => `
+                                <span class="px-2 py-1 rounded-lg text-[11px] font-mono font-bold bg-slate-100 text-slate-700">#${code}</span>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Alt Meta Bilgiler & Detay Butonu -->
+                    <div class="pt-3.5 border-t border-slate-100 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+                            <span class="inline-flex items-center gap-1 font-semibold">
+                                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-red-600"></i> ${job.city}
+                            </span>
+                            <span class="inline-flex items-center gap-1 font-semibold">
+                                <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-gov-700"></i> ${job.education}
+                            </span>
+                            <span class="inline-flex items-center gap-1 font-semibold">
+                                <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-600"></i> ${formatTurkishDate(job.deadline)}
+                            </span>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-3 pt-1">
+                            <div>
+                                <span class="text-[10px] font-bold uppercase text-slate-400 block">Kontenjan</span>
+                                <span class="font-display text-base font-extrabold text-navy-900">${(parseInt(job.quota, 10) || 0).toLocaleString('tr-TR')} Kişi</span>
+                            </div>
+
+                            <button onclick="event.stopPropagation(); openDetailModal('${job.id}')"
+                                class="px-4 py-2.5 rounded-xl bg-navy-900 group-hover:bg-gov-800 text-white text-xs sm:text-sm font-bold transition inline-flex items-center gap-1.5">
+                                <span>İlan Detayı / Kılavuz</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        // =================================================================
+        // 6. FAVORİLERİM İŞLEMLERİ
+        // =================================================================
+        function toggleFavorite(event, jobId) {
+            event.stopPropagation();
+            const idx = favoriteIds.indexOf(jobId);
+            if (idx === -1) {
+                favoriteIds.push(jobId);
+                showToast("Favorilere Eklendi", "İlan favorilerim listenize kaydedildi.");
+            } else {
+                favoriteIds.splice(idx, 1);
+                showToast("Favorilerden Çıkarıldı", "İlan favorilerinizden kaldırıldı.");
+            }
+            localStorage.setItem('kp_v2_favs', JSON.stringify(favoriteIds));
+            updateFavoriteBadge();
+            renderJobs();
+        }
+
+        function updateFavoriteBadge() {
+            document.getElementById('favCountBadge').textContent = favoriteIds.length;
+        }
+
+        // =================================================================
+        // 7. İLAN DETAYI & BAŞVURU KILAVUZU MODALI
+        // =================================================================
+        function openDetailModal(jobId) {
+            const job = allJobs.find(j => j.id === jobId);
+            if (!job) return;
+
+            const daysLeft = getDaysRemaining(job.deadline);
+            const codesArr = Array.isArray(job.codes) ? job.codes : (job.codes ? job.codes.split(',').map(s => s.trim()).filter(Boolean) : []);
+
+            document.getElementById('dCatBadge').textContent = job.category;
+            document.getElementById('dUrgencyBadge').textContent = daysLeft < 0 ? 'Süresi Doldu' : (daysLeft === 0 ? 'SON GÜN!' : `Son ${daysLeft} Gün`);
+            document.getElementById('dInstitution').textContent = job.institution;
+            document.getElementById('dTitle').textContent = job.title;
+
+            document.getElementById('dQuota').textContent = `${(parseInt(job.quota, 10) || 0).toLocaleString('tr-TR')} Kişi`;
+            document.getElementById('dEducation').textContent = job.education;
+            document.getElementById('dKpss').textContent = job.kpss;
+            document.getElementById('dDeadline').textContent = formatTurkishDate(job.deadline);
+
+            document.getElementById('dCity').textContent = job.city;
+            document.getElementById('dRecruitType').textContent = job.recruitType;
+            document.getElementById('dDetails').textContent = job.details || "Resmi başvuru kılavuzundaki genel ve özel şartlar geçerlidir.";
+
+            const url = job.applyUrl || "https://isealimkariyerkapisi.cbiko.gov.tr";
+            document.getElementById('dApplyUrlText').textContent = url;
+            document.getElementById('dApplyLinkBtn').href = url;
+
+            document.getElementById('dCodesWrap').innerHTML = codesArr.map(c => `
+                <span class="px-2.5 py-1.5 rounded-xl bg-navy-900 text-white font-mono text-xs font-bold">Kod: ${c}</span>
+            `).join('');
+
+            document.getElementById('detailModal').classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            lucide.createIcons();
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        // =================================================================
+        // 8. KPSS PUAN HESAPLAMA & TERCİH ROBOTU
+        // =================================================================
+        let latestCalcEdu = 'Lisans';
+        let latestCalcScore = 78.45;
+
+        function openKpssModal() {
+            calculateKpss();
+            document.getElementById('kpssModal').classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            lucide.createIcons();
+        }
+
+        function closeKpssModal() {
+            document.getElementById('kpssModal').classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        function calculateKpss() {
+            const selectedEdu = document.querySelector('input[name="kpssEdu"]:checked')?.value || 'Lisans';
+            latestCalcEdu = selectedEdu;
+
+            let gyD = Math.min(60, Math.max(0, parseInt(document.getElementById('gyDogru').value, 10) || 0));
+            let gyY = Math.min(60 - gyD, Math.max(0, parseInt(document.getElementById('gyYanlis').value, 10) || 0));
+            let gkD = Math.min(60, Math.max(0, parseInt(document.getElementById('gkDogru').value, 10) || 0));
+            let gkY = Math.min(60 - gkD, Math.max(0, parseInt(document.getElementById('gkYanlis').value, 10) || 0));
+
+            const gyNet = Math.max(0, gyD - gyY * 0.25);
+            const gkNet = Math.max(0, gkD - gkY * 0.25);
+            const totalNet = gyNet + gkNet;
+
+            const base = { Lisans: 46.2, Önlisans: 47.5, Ortaöğretim: 48.1 }[selectedEdu];
+            const mult = { Lisans: 0.43, Önlisans: 0.425, Ortaöğretim: 0.42 }[selectedEdu];
+            const score = totalNet === 0 ? 0 : Math.min(100, base + totalNet * mult);
+            latestCalcScore = score;
+
+            const typeMap = { Lisans: 'KPSS P3', Önlisans: 'KPSS P93', Ortaöğretim: 'KPSS P94' };
+            document.getElementById('gyNetText').textContent = `${gyNet.toFixed(2)} Net`;
+            document.getElementById('gkNetText').textContent = `${gkNet.toFixed(2)} Net`;
+            document.getElementById('kpssResultLabel').textContent = `Tahmini ${typeMap[selectedEdu]} (${selectedEdu}) Puanınız`;
+            document.getElementById('kpssScoreDisplay').textContent = score.toFixed(3);
+            document.getElementById('kpssTotalNetDisplay').textContent = `(${totalNet.toFixed(2)} Net)`;
+
+            const eligibleCount = allJobs.filter(j => {
+                const eduOk = j.education === 'Tümü' || j.education === selectedEdu;
+                if (!eduOk) return false;
+                if (isJobKpssExempt(j)) return true;
+                return extractMinScore(j.kpss) <= score;
+            }).length;
+
+            document.getElementById('kpssMatchHint').textContent = `Bu puan ile şu an ${eligibleCount} ilana başvurabilirsiniz!`;
+        }
+
+        function filterByCalculatedKpss() {
+            closeKpssModal();
+            showFavoritesOnly = false;
+            quickStatMode = 'ALL';
+            activeCategory = 'ALL';
+            document.getElementById('noKpssToggle').checked = false;
+            document.getElementById('eduFilter').value = latestCalcEdu;
+            kpssFilterLimit = { edu: latestCalcEdu, score: latestCalcScore };
+            renderJobs();
+            scrollToListings();
+            showToast("KPSS Tercih Filtresi", `${latestCalcEdu} ve ${latestCalcScore.toFixed(2)} puana uygun ilanlar listelendi.`);
+        }
+
+        // =================================================================
+        // 9. YÖNETİM PANELİ (ADMIN AUTH & CRUD & SETTINGS)
+        // =================================================================
+        function getAdminPassword() {
+            return localStorage.getItem('kp_v2_admin_pass') || '1234';
+        }
+
+        function openAdminTrigger() {
+            if (isAdminAuthenticated) {
+                openAdminPanel();
+            } else {
+                document.getElementById('adminPassInput').value = '';
+                document.getElementById('adminLoginModal').classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+                setTimeout(() => document.getElementById('adminPassInput').focus(), 100);
+            }
+            lucide.createIcons();
+        }
+
+        function closeAdminLogin() {
+            document.getElementById('adminLoginModal').classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const entered = document.getElementById('adminPassInput').value;
+            if (entered === getAdminPassword()) {
+                isAdminAuthenticated = true;
+                closeAdminLogin();
+                openAdminPanel();
+                showToast("Hoş Geldiniz", "Yönetim paneli oturumu açıldı.");
+            } else {
+                showToast("Hatalı Şifre", "Girdiğiniz yönetici şifresi yanlış. (Varsayılan: 1234)");
+            }
+        }
+
+        function logoutAdmin() {
+            isAdminAuthenticated = false;
+            closeAdminPanel();
+            showToast("Çıkış Yapıldı", "Yönetici oturumu güvenli şekilde kapatıldı.");
+        }
+
+        function openAdminPanel() {
+            resetAdminForm();
+            switchAdminTab('form');
+            renderAdminManageList();
+            document.getElementById('adminPanelModal').classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+            lucide.createIcons();
+        }
+
+        function closeAdminPanel() {
+            document.getElementById('adminPanelModal').classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        function switchAdminTab(tabName) {
+            const tabs = {
+                form: { btn: 'tabBtnForm', panel: 'adminTabForm' },
+                manage: { btn: 'tabBtnManage', panel: 'adminTabManage' },
+                settings: { btn: 'tabBtnSettings', panel: 'adminTabSettings' }
+            };
+
+            Object.keys(tabs).forEach(key => {
+                const isTarget = key === tabName;
+                document.getElementById(tabs[key].panel).classList.toggle('hidden', !isTarget);
+                const btn = document.getElementById(tabs[key].btn);
+                if (isTarget) {
+                    btn.className = "admin-tab px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-extrabold bg-white text-gov-800 border-t border-x border-slate-200 whitespace-nowrap flex items-center gap-1.5";
+                } else {
+                    btn.className = "admin-tab px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-bold text-slate-600 hover:text-navy-900 whitespace-nowrap flex items-center gap-1.5";
+                }
+            });
+
+            if (tabName === 'manage') renderAdminManageList();
+            lucide.createIcons();
+        }
+
+        async function handleSaveJob(e) {
+            e.preventDefault();
+            const editId = document.getElementById('editJobId').value;
+            const codesRaw = document.getElementById('fCodes').value;
+            const codesArray = codesRaw.split(',').map(s => s.trim()).filter(Boolean);
+
+            const jobPayload = {
+                institution: document.getElementById('fInstitution').value.trim(),
+                title: document.getElementById('fTitle').value.trim(),
+                category: document.getElementById('fCategory').value,
+                recruitType: document.getElementById('fRecruitType').value,
+                city: document.getElementById('fCity').value,
+                education: document.getElementById('fEducation').value,
+                kpss: document.getElementById('fKpss').value.trim(),
+                quota: parseInt(document.getElementById('fQuota').value, 10) || 1,
+                deadline: document.getElementById('fDeadline').value,
+                codes: codesArray,
+                applyUrl: document.getElementById('fUrl').value.trim(),
+                details: document.getElementById('fDetails').value.trim()
+            };
+
+            if (isFirebaseLive && db) {
+                try {
+                    if (editId) {
+                        await db.collection('ilanlar').doc(editId).set(jobPayload);
+                        showToast("İlan Güncellendi", "Değişiklikler canlı bulut veritabanına kaydedildi.");
+                    } else {
+                        await db.collection('ilanlar').add(jobPayload);
+                        showToast("İlan Yayınlandı", "Yeni ilan tüm ziyaretçiler için canlıya alındı.");
+                    }
+                    resetAdminForm();
+                    switchAdminTab('manage');
+                } catch (err) {
+                    showToast("Bulut Kayıt Hatası", err.message);
+                }
+            } else {
+                if (editId) {
+                    const idx = allJobs.findIndex(j => j.id === editId);
+                    if (idx !== -1) {
+                        allJobs[idx] = { id: editId, ...jobPayload };
+                    }
+                    showToast("İlan Güncellendi", "İlan yerel depolamada güncellendi.");
+                } else {
+                    const newId = 'job_' + Date.now();
+                    allJobs.push({ id: newId, ...jobPayload });
+                    showToast("İlan Eklendi", "Yeni ilan başarıyla listeye eklendi.");
+                }
+                saveLocalJobs();
+                resetAdminForm();
+                switchAdminTab('manage');
+            }
+        }
+
+        function startEditJob(jobId) {
+            const job = allJobs.find(j => j.id === jobId);
+            if (!job) return;
+
+            document.getElementById('editJobId').value = job.id;
+            document.getElementById('fInstitution').value = job.institution;
+            document.getElementById('fTitle').value = job.title;
+            document.getElementById('fCategory').value = job.category;
+            document.getElementById('fRecruitType').value = job.recruitType;
+            document.getElementById('fCity').value = job.city;
+            document.getElementById('fEducation').value = job.education;
+            document.getElementById('fKpss').value = job.kpss;
+            document.getElementById('fQuota').value = job.quota;
+            document.getElementById('fDeadline').value = job.deadline;
+            document.getElementById('fCodes').value = Array.isArray(job.codes) ? job.codes.join(', ') : (job.codes || '');
+            document.getElementById('fUrl').value = job.applyUrl || 'https://isealimkariyerkapisi.cbiko.gov.tr';
+            document.getElementById('fDetails').value = job.details || '';
+
+            document.getElementById('formHeading').textContent = "İlanı Düzenle";
+            document.getElementById('saveJobBtn').innerHTML = `<i data-lucide="save" class="w-4 h-4"></i><span>Değişiklikleri Kaydet</span>`;
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+            switchAdminTab('form');
+            lucide.createIcons();
+        }
+
+        function resetAdminForm() {
+            document.getElementById('jobForm').reset();
+            document.getElementById('editJobId').value = '';
+            document.getElementById('fUrl').value = 'https://isealimkariyerkapisi.cbiko.gov.tr';
+            // Varsayılan tarih 10 gün sonrası
+            const d = new Date();
+            d.setDate(d.getDate() + 10);
+            document.getElementById('fDeadline').value = d.toISOString().split('T')[0];
+
+            document.getElementById('formHeading').textContent = "Yeni Kamu İlanı Yayınla";
+            document.getElementById('saveJobBtn').innerHTML = `<i data-lucide="check-circle" class="w-4 h-4"></i><span>İlanı Yayınla</span>`;
+            document.getElementById('cancelEditBtn').classList.add('hidden');
+            lucide.createIcons();
+        }
+
+        async function deleteJob(jobId) {
+            if (isFirebaseLive && db) {
+                try {
+                    await db.collection('ilanlar').doc(jobId).delete();
+                    showToast("İlan Silindi", "İlan bulut veritabanından kaldırıldı.");
+                } catch (err) {
+                    showToast("Silme Hatası", err.message);
+                }
+            } else {
+                allJobs = allJobs.filter(j => j.id !== jobId);
+                saveLocalJobs();
+                showToast("İlan Silindi", "İlan listeden kaldırıldı.");
+            }
+        }
+
+        async function seedDefaultJobsToDb() {
+            if (isFirebaseLive && db) {
+                try {
+                    const batch = db.batch();
+                    DEFAULT_JOBS.forEach(item => {
+                        const { id, ...cleanData } = item;
+                        const docRef = db.collection('ilanlar').doc(id);
+                        batch.set(docRef, cleanData);
+                    });
+                    await batch.commit();
+                    showToast("Örnek İlanlar Yüklendi", "10 adet örnek kamu ilanı Firebase bulut veritabanına aktarıldı.");
+                } catch (err) {
+                    showToast("Yükleme Hatası", err.message);
+                }
+            } else {
+                allJobs = [...DEFAULT_JOBS];
+                saveLocalJobs();
+                showToast("Örnek İlanlar Yüklendi", "10 adet örnek kamu ilanı yerel listeye geri yüklendi.");
+            }
+        }
+
+        function renderAdminManageList() {
+            const q = (document.getElementById('adminManageSearch')?.value || '').toLowerCase().trim();
+            const listEl = document.getElementById('adminJobsList');
+
+            const items = allJobs.filter(j =>
+                `${j.institution} ${j.title} ${j.city}`.toLowerCase().includes(q)
+            );
+
+            if (items.length === 0) {
+                listEl.innerHTML = `<div class="text-center py-8 text-xs text-slate-400">Listelenecek ilan bulunamadı.</div>`;
+                return;
+            }
+
+            listEl.innerHTML = items.map(job => `
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[11px] font-bold text-gov-700">${job.category}</span>
+                            <span class="text-[11px] text-slate-400">• ${job.city}</span>
+                        </div>
+                        <h5 class="text-sm font-extrabold text-navy-900 truncate">${job.institution}</h5>
+                        <p class="text-xs text-slate-600 truncate">${job.title}</p>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <button onclick="startEditJob('${job.id}')" class="px-3 py-2 rounded-xl bg-white hover:bg-gov-50 text-gov-800 border border-slate-300 text-xs font-bold inline-flex items-center gap-1 transition">
+                            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                            <span>Düzenle</span>
+                        </button>
+                        <button onclick="deleteJob('${job.id}')" class="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-600 text-red-700 hover:text-white border border-red-200 text-xs font-bold inline-flex items-center gap-1 transition">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            <span>Sil</span>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function handleChangeAdminPassword(e) {
+            e.preventDefault();
+            const newPass = document.getElementById('newAdminPassInput').value.trim();
+            if (newPass.length < 4) return;
+            localStorage.setItem('kp_v2_admin_pass', newPass);
+            document.getElementById('newAdminPassInput').value = '';
+            showToast("Şifre Güncellendi", "Yeni yönetici şifreniz kaydedildi.");
+        }
+
+        // =================================================================
+        // 10. YARDIMCI FONKSİYONLAR (SCROLL & TOAST)
+        // =================================================================
+        function scrollToListings() {
+            const el = document.getElementById('listingsSection');
+            if (!el) return;
+            const y = el.getBoundingClientRect().top + window.scrollY - 120;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+
+        let toastTimer = null;
+        function showToast(title, msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMsg').textContent = msg;
+
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 3800);
+        }
+    </script>
+</body>
+</html>
